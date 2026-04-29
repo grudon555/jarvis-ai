@@ -15,3 +15,5 @@ python-multipart
 twilio
 requests
 python-telegram-bot[ext]
+ddgs
+beautifulsoup4
