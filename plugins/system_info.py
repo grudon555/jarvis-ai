@@ -2,8 +2,24 @@
 import os
 import platform
 import shutil
+from datetime import datetime, timezone
 
 from plugins import jarvis_tool
+
+
+@jarvis_tool(
+    name="get_datetime",
+    description="Returns the current local date and time. Use this when the user asks what day/time it is.",
+    params={},
+)
+def get_datetime() -> str:
+    now = datetime.now()
+    utc = datetime.now(timezone.utc)
+    return (
+        f"Local time : {now.strftime('%A, %d %B %Y  %H:%M:%S')}\n"
+        f"UTC time   : {utc.strftime('%A, %d %B %Y  %H:%M:%S UTC')}\n"
+        f"ISO 8601   : {now.isoformat()}"
+    )
 
 
 @jarvis_tool(

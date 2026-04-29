@@ -25,7 +25,7 @@ from core.config import settings
 from core.llm import CloudLLM, LocalLLM
 from core.plugin_loader import PluginLoader
 from core.mcp_client import MCPClientManager
-from agents import CoderAgent, ResearchAgent
+from agents import CoderAgent, ResearchAgent, WebAgent
 from agents.manager import ManagerAgent
 from agents.analyst import AnalystAgent
 from skills.registry import SkillRegistry
@@ -55,6 +55,7 @@ async def lifespan(app: FastAPI):
 
     ResearchAgent(bus, project_root=".")
     CoderAgent(bus, llm=cloud_llm, cwd=".")
+    WebAgent(bus, llm=cloud_llm)
     _manager = ManagerAgent(
         bus, cloud_llm=cloud_llm, local_llm=local_llm,
         registry=registry, analyst=analyst,

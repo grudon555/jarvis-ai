@@ -12,7 +12,7 @@ from core.config import settings
 from core.llm import CloudLLM, LocalLLM
 from core.plugin_loader import PluginLoader
 from core.mcp_client import MCPClientManager
-from agents import ManagerAgent, CoderAgent, ResearchAgent
+from agents import ManagerAgent, CoderAgent, ResearchAgent, WebAgent
 from agents.analyst import AnalystAgent
 from skills.registry import SkillRegistry
 from interface.tui import JarvisDisplay
@@ -118,6 +118,7 @@ def run() -> None:
 
     ResearchAgent(bus, project_root=".")
     CoderAgent(bus, llm=cloud_llm, cwd=".")
+    WebAgent(bus, llm=cloud_llm)
     manager = ManagerAgent(
         bus, cloud_llm=cloud_llm, local_llm=local_llm,
         registry=registry, analyst=analyst,

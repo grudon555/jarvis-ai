@@ -10,6 +10,7 @@ class AgentRole(str, Enum):
     MANAGER = "manager"
     CODER = "coder"
     RESEARCH = "research"
+    WEB = "web"
 
 
 @dataclass

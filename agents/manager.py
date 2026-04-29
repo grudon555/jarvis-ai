@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Callable, Optional
 
+from plugins import all_tools as _all_tools
 from core.bus import AgentBus, AgentMessage, AgentRole
 from core.llm import CloudLLM, LocalLLM
 from core.router import SmartRouter, RouteTarget
@@ -13,10 +15,11 @@ Classify the user request into one or more of these categories.
 
 RESEARCH — find, search, or look up content in existing project files
 CODER    — write code, create/edit files, run terminal commands, implement features
+WEB      — search the internet for current events, news, prices, real-time or external information
 DIRECT   — general questions, explanations, analysis, conversation
 
 Reply with ONLY category names, comma-separated. No explanation.
-Examples: "DIRECT" | "CODER" | "RESEARCH,CODER"
+Examples: "DIRECT" | "CODER" | "WEB" | "RESEARCH,CODER" | "WEB,CODER"
 
 Request: {prompt}\
 """
@@ -32,10 +35,13 @@ Agent results:
 {results}\
 """
 
-_DIRECT_SYSTEM = (
-    "You are Jarvis, a precise and helpful AI assistant. "
-    "Be concise unless detail is explicitly requested."
-)
+def _direct_system() -> str:
+    now = datetime.now().strftime("%A, %d %B %Y  %H:%M")
+    return (
+        f"You are Jarvis, a precise and helpful AI assistant. "
+        f"Be concise unless detail is explicitly requested. "
+        f"Current date and time: {now}."
+    )
 
 
 class ManagerAgent(BaseAgent):
@@ -94,7 +100,7 @@ class ManagerAgent(BaseAgent):
             meta["skill_hits"] = [m.name for m in matches]
             resp = self._local.chat(
                 messages=[{"role": "user", "content": prompt}],
-                system=f"{_DIRECT_SYSTEM}\n\n{skill_ctx}",
+                system=f"{_direct_system()}\n\n{skill_ctx}",
             )
             if on_token:
                 for ch in resp.content:
@@ -105,7 +111,7 @@ class ManagerAgent(BaseAgent):
         if self._router.classify(prompt) == RouteTarget.LOCAL:
             resp = self._local.chat(
                 messages=[{"role": "user", "content": prompt}],
-                system=_DIRECT_SYSTEM,
+                system=_direct_system(),
             )
             if on_token:
                 for ch in resp.content:
@@ -116,9 +122,10 @@ class ManagerAgent(BaseAgent):
         categories = self._classify(prompt)
 
         if categories == ["DIRECT"]:
-            content = self._cloud.stream_chat(
+            content = self._cloud.chat_with_tools(
                 messages=[{"role": "user", "content": prompt}],
-                system=_DIRECT_SYSTEM,
+                tools=list(_all_tools().values()),
+                system=_direct_system(),
                 on_token=on_token,
             )
             self._run_analyst(prompt, content, meta)
@@ -126,6 +133,15 @@ class ManagerAgent(BaseAgent):
 
         collected: list = []
         research_result: Optional[AgentMessage] = None
+
+        if "WEB" in categories:
+            result = self.bus.send(AgentMessage(
+                sender=AgentRole.MANAGER,
+                recipient=AgentRole.WEB,
+                content=prompt,
+            ))
+            if result:
+                collected.append(result)
 
         if "RESEARCH" in categories:
             result = self.bus.send(AgentMessage(
@@ -151,9 +167,10 @@ class ManagerAgent(BaseAgent):
                 collected.append(result)
 
         if not collected:
-            content = self._cloud.stream_chat(
+            content = self._cloud.chat_with_tools(
                 messages=[{"role": "user", "content": prompt}],
-                system=_DIRECT_SYSTEM,
+                tools=list(_all_tools().values()),
+                system=_direct_system(),
                 on_token=on_token,
             )
             self._run_analyst(prompt, content, meta)
