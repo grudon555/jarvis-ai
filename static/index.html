@@ -263,6 +263,80 @@
     #input-area { padding: 12px; }
     .welcome-features { grid-template-columns: 1fr; }
   }
+
+  /* ── Settings Modal ── */
+  #settings-modal {
+    display: none; position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.75); align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  #settings-modal.open { display: flex; }
+  #settings-panel {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 16px; width: 100%; max-width: 620px;
+    max-height: 90vh; display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .settings-header {
+    padding: 20px 24px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .settings-header h2 { font-size: 17px; font-weight: 700; }
+  .settings-close {
+    background: none; border: none; color: var(--text2); font-size: 22px;
+    cursor: pointer; padding: 4px; line-height: 1;
+  }
+  .settings-close:hover { color: var(--text); }
+  .settings-body { overflow-y: auto; padding: 20px 24px; flex: 1; }
+  .settings-body::-webkit-scrollbar { width: 4px; }
+  .settings-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .settings-section { margin-bottom: 28px; }
+  .settings-section-title {
+    font-size: 11px; font-weight: 700; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 12px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .settings-field { margin-bottom: 14px; }
+  .settings-field label {
+    display: block; font-size: 13px; font-weight: 600;
+    color: var(--text2); margin-bottom: 6px;
+  }
+  .settings-field .hint { font-size: 11px; color: var(--text3); margin-top: 4px; }
+  .settings-field input, .settings-field select {
+    width: 100%; padding: 9px 12px; background: var(--bg3);
+    border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-size: 14px; font-family: var(--font);
+    outline: none; transition: border-color 0.15s;
+  }
+  .settings-field input:focus, .settings-field select:focus { border-color: var(--accent); }
+  .settings-field input[type="password"] { font-family: var(--font-mono); letter-spacing: 0.05em; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .settings-footer {
+    padding: 16px 24px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  #settings-save-msg { font-size: 13px; color: var(--green); opacity: 0; transition: opacity 0.3s; }
+  #settings-save-msg.show { opacity: 1; }
+  #btn-settings-save {
+    padding: 9px 22px; background: var(--accent); border: none;
+    border-radius: 8px; color: #fff; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: background 0.15s;
+  }
+  #btn-settings-save:hover { background: var(--accent2); }
+
+  /* Status badges in settings */
+  .field-status {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; padding: 2px 8px; border-radius: 20px;
+    margin-left: 8px; font-weight: 500;
+  }
+  .field-status.set { background: #1a2e1a; color: var(--green); }
+  .field-status.unset { background: #2e1a1a; color: var(--red); }
 </style>
 </head>
 <body>
@@ -306,7 +380,8 @@
     </div>
 
     <div class="sidebar-footer">
-      <a href="https://github.com/anthropics/jarvis" target="_blank">GitHub</a> · Open Source
+      <a href="https://github.com/anthropics/jarvis" target="_blank">GitHub</a> ·
+      <a href="#" onclick="openSettings(); return false;">⚙ Einstellungen</a>
     </div>
   </aside>
 
@@ -322,6 +397,7 @@
       </div>
       <div id="header-actions">
         <button class="btn-sm" onclick="resetChat()">↺ Reset</button>
+        <button class="btn-sm" onclick="openSettings()">⚙ Einstellungen</button>
       </div>
     </div>
 
@@ -361,6 +437,138 @@
         <button id="btn-send" onclick="sendMessage()">▶</button>
       </div>
       <div class="input-hint">Enter zum Senden · Shift+Enter für neue Zeile</div>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div id="settings-modal">
+  <div id="settings-panel">
+    <div class="settings-header">
+      <h2>⚙ Einstellungen</h2>
+      <button class="settings-close" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="settings-body">
+
+      <!-- AI / Cloud -->
+      <div class="settings-section">
+        <div class="settings-section-title">🤖 KI &amp; Cloud</div>
+        <div class="settings-field">
+          <label>Anthropic API Key <span id="badge-anthropic_api_key" class="field-status unset">nicht gesetzt</span></label>
+          <input type="password" id="sf-anthropic_api_key" placeholder="sk-ant-api03-…" autocomplete="off">
+          <div class="hint">Für Claude — holen unter console.anthropic.com → API Keys</div>
+        </div>
+        <div class="field-row">
+          <div class="settings-field">
+            <label>Cloud Modell</label>
+            <select id="sf-cloud_model">
+              <option value="claude-sonnet-4-6">claude-sonnet-4-6 (Standard)</option>
+              <option value="claude-opus-4-7">claude-opus-4-7 (Stärkstes)</option>
+              <option value="claude-haiku-4-5-20251001">claude-haiku-4-5 (Schnellstes)</option>
+            </select>
+          </div>
+          <div class="settings-field">
+            <label>Router Schwelle</label>
+            <input type="text" id="sf-router_threshold" placeholder="3">
+            <div class="hint">≥ Wert → Cloud, &lt; Wert → Lokal</div>
+          </div>
+        </div>
+        <div class="settings-field">
+          <label>Ollama Host</label>
+          <input type="text" id="sf-ollama_host" placeholder="http://localhost:11434">
+        </div>
+      </div>
+
+      <!-- Telegram -->
+      <div class="settings-section">
+        <div class="settings-section-title">✈ Telegram Bot</div>
+        <div class="settings-field">
+          <label>Bot Token <span id="badge-telegram_bot_token" class="field-status unset">nicht gesetzt</span></label>
+          <input type="password" id="sf-telegram_bot_token" placeholder="7123456789:AAF…" autocomplete="off">
+          <div class="hint">Von @BotFather auf Telegram: /newbot → Token kopieren</div>
+        </div>
+      </div>
+
+      <!-- WhatsApp -->
+      <div class="settings-section">
+        <div class="settings-section-title">💬 WhatsApp (Twilio)</div>
+        <div class="field-row">
+          <div class="settings-field">
+            <label>Account SID</label>
+            <input type="text" id="sf-twilio_account_sid" placeholder="ACxxxxxxxx…">
+          </div>
+          <div class="settings-field">
+            <label>Auth Token <span id="badge-twilio_auth_token" class="field-status unset">nicht gesetzt</span></label>
+            <input type="password" id="sf-twilio_auth_token" placeholder="••••••••" autocomplete="off">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="settings-field">
+            <label>WhatsApp Nummer</label>
+            <input type="text" id="sf-twilio_whatsapp_number" placeholder="+14155238886">
+          </div>
+          <div class="settings-field">
+            <label>Rate Limit (msgs/min)</label>
+            <input type="text" id="sf-whatsapp_rate_limit" placeholder="20">
+          </div>
+        </div>
+        <div class="settings-field">
+          <label>Autorisierte Nummern</label>
+          <input type="text" id="sf-whatsapp_authorized_numbers" placeholder="+436608083038,+491234567890">
+          <div class="hint">Komma-getrennt, E.164-Format. Leer = alle erlaubt.</div>
+        </div>
+      </div>
+
+      <!-- Voice -->
+      <div class="settings-section">
+        <div class="settings-section-title">🎙 Stimme</div>
+        <div class="field-row">
+          <div class="settings-field">
+            <label>ElevenLabs API Key <span id="badge-elevenlabs_api_key" class="field-status unset">nicht gesetzt</span></label>
+            <input type="password" id="sf-elevenlabs_api_key" placeholder="sk_…" autocomplete="off">
+          </div>
+          <div class="settings-field">
+            <label>Voice ID</label>
+            <input type="text" id="sf-elevenlabs_voice_id" placeholder="21m00Tcm4TlvDq8ikWAM">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="settings-field">
+            <label>Whisper Modell</label>
+            <select id="sf-whisper_model">
+              <option value="base">base (Standard)</option>
+              <option value="small">small</option>
+              <option value="medium">medium</option>
+              <option value="large-v3">large-v3 (Beste Qualität)</option>
+            </select>
+          </div>
+          <div class="settings-field">
+            <label>Sprache (Whisper)</label>
+            <input type="text" id="sf-whisper_language" placeholder="de">
+            <div class="hint">ISO-Code: de, en, fr, es…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Server -->
+      <div class="settings-section">
+        <div class="settings-section-title">🖥 Server</div>
+        <div class="field-row">
+          <div class="settings-field">
+            <label>Host</label>
+            <input type="text" id="sf-server_host" placeholder="0.0.0.0">
+          </div>
+          <div class="settings-field">
+            <label>Port</label>
+            <input type="text" id="sf-server_port" placeholder="8000">
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="settings-footer">
+      <span id="settings-save-msg">✓ Gespeichert!</span>
+      <button id="btn-settings-save" onclick="saveSettings()">Speichern</button>
     </div>
   </div>
 </div>
@@ -669,6 +877,99 @@ function autoResize(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 200) + 'px';
 }
+
+// ── Settings ──────────────────────────────────────────────────────────────
+async function openSettings() {
+  document.getElementById('settings-modal').classList.add('open');
+  closeSidebar();
+  try {
+    const r = await fetch('/api/settings');
+    const data = await r.json();
+    const fieldMap = {
+      anthropic_api_key: 'ANTHROPIC_API_KEY',
+      cloud_model: 'CLOUD_MODEL',
+      router_threshold: 'ROUTER_THRESHOLD',
+      ollama_host: 'OLLAMA_HOST',
+      telegram_bot_token: 'TELEGRAM_BOT_TOKEN',
+      twilio_account_sid: 'TWILIO_ACCOUNT_SID',
+      twilio_auth_token: 'TWILIO_AUTH_TOKEN',
+      twilio_whatsapp_number: 'TWILIO_WHATSAPP_NUMBER',
+      whatsapp_rate_limit: 'WHATSAPP_RATE_LIMIT',
+      whatsapp_authorized_numbers: 'WHATSAPP_AUTHORIZED_NUMBERS',
+      elevenlabs_api_key: 'ELEVENLABS_API_KEY',
+      elevenlabs_voice_id: 'ELEVENLABS_VOICE_ID',
+      whisper_model: 'WHISPER_MODEL',
+      whisper_language: 'WHISPER_LANGUAGE',
+      server_host: 'SERVER_HOST',
+      server_port: 'SERVER_PORT',
+    };
+    for (const [fieldId, envKey] of Object.entries(fieldMap)) {
+      const el = document.getElementById('sf-' + fieldId);
+      const info = data[envKey];
+      if (el && info) {
+        if (el.tagName === 'SELECT') {
+          el.value = info.value || el.options[0].value;
+        } else {
+          el.value = info.value || '';
+        }
+      }
+      // Update badge
+      const badge = document.getElementById('badge-' + fieldId);
+      if (badge && info) {
+        badge.className = 'field-status ' + (info.set ? 'set' : 'unset');
+        badge.textContent = info.set ? '✓ gesetzt' : 'nicht gesetzt';
+      }
+    }
+  } catch (e) { console.error('Settings load error', e); }
+}
+
+function closeSettings() {
+  document.getElementById('settings-modal').classList.remove('open');
+}
+
+async function saveSettings() {
+  const fieldMap = {
+    ANTHROPIC_API_KEY: 'sf-anthropic_api_key',
+    CLOUD_MODEL: 'sf-cloud_model',
+    ROUTER_THRESHOLD: 'sf-router_threshold',
+    OLLAMA_HOST: 'sf-ollama_host',
+    TELEGRAM_BOT_TOKEN: 'sf-telegram_bot_token',
+    TWILIO_ACCOUNT_SID: 'sf-twilio_account_sid',
+    TWILIO_AUTH_TOKEN: 'sf-twilio_auth_token',
+    TWILIO_WHATSAPP_NUMBER: 'sf-twilio_whatsapp_number',
+    WHATSAPP_RATE_LIMIT: 'sf-whatsapp_rate_limit',
+    WHATSAPP_AUTHORIZED_NUMBERS: 'sf-whatsapp_authorized_numbers',
+    ELEVENLABS_API_KEY: 'sf-elevenlabs_api_key',
+    ELEVENLABS_VOICE_ID: 'sf-elevenlabs_voice_id',
+    WHISPER_MODEL: 'sf-whisper_model',
+    WHISPER_LANGUAGE: 'sf-whisper_language',
+    SERVER_HOST: 'sf-server_host',
+    SERVER_PORT: 'sf-server_port',
+  };
+  const payload = {};
+  for (const [envKey, fieldId] of Object.entries(fieldMap)) {
+    const el = document.getElementById(fieldId);
+    if (el) payload[envKey] = el.value;
+  }
+  try {
+    const r = await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (r.ok) {
+      const msg = document.getElementById('settings-save-msg');
+      msg.classList.add('show');
+      setTimeout(() => msg.classList.remove('show'), 3000);
+      loadStatus(); // Refresh status badges
+    }
+  } catch (e) { alert('Fehler beim Speichern: ' + e.message); }
+}
+
+// Close settings on backdrop click
+document.getElementById('settings-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeSettings();
+});
 </script>
 </body>
 </html>

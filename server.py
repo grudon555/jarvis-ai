@@ -425,6 +425,91 @@ async def chat_reset(request: Request):
     return {"ok": True}
 
 
+# ── Settings API ─────────────────────────────────────────────────────────────────
+
+_SECRET_FIELDS = {"anthropic_api_key", "twilio_auth_token", "elevenlabs_api_key", "telegram_bot_token"}
+_ENV_FILE = Path(".env")
+
+
+def _read_env_file() -> dict[str, str]:
+    """Parse .env file into a dict."""
+    result: dict[str, str] = {}
+    if not _ENV_FILE.exists():
+        return result
+    for line in _ENV_FILE.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, val = line.partition("=")
+        result[key.strip()] = val.strip()
+    return result
+
+
+def _write_env_file(data: dict[str, str]) -> None:
+    """Write dict back to .env, preserving comments and ordering."""
+    if not _ENV_FILE.exists():
+        lines = [f"{k}={v}" for k, v in data.items()]
+        _ENV_FILE.write_text("\n".join(lines) + "\n")
+        return
+    original = _ENV_FILE.read_text().splitlines()
+    updated_keys: set[str] = set()
+    new_lines = []
+    for line in original:
+        stripped = line.strip()
+        if stripped.startswith("#") or not stripped or "=" not in stripped:
+            new_lines.append(line)
+            continue
+        key = stripped.split("=", 1)[0].strip()
+        if key in data:
+            new_lines.append(f"{key}={data[key]}")
+            updated_keys.add(key)
+        else:
+            new_lines.append(line)
+    # Append new keys not in original
+    for key, val in data.items():
+        if key not in updated_keys:
+            new_lines.append(f"{key}={val}")
+    _ENV_FILE.write_text("\n".join(new_lines) + "\n")
+
+
+def _mask(val: str) -> str:
+    if len(val) <= 8:
+        return "••••••••" if val else ""
+    return val[:4] + "••••••••" + val[-4:]
+
+
+@app.get("/api/settings")
+async def get_settings():
+    env = _read_env_file()
+    result = {}
+    for key, val in env.items():
+        if key.lower() in _SECRET_FIELDS:
+            result[key] = {"value": _mask(val), "masked": True, "set": bool(val)}
+        else:
+            result[key] = {"value": val, "masked": False, "set": bool(val)}
+    return result
+
+
+@app.post("/api/settings")
+async def save_settings(request: Request):
+    body = await request.json()
+    env = _read_env_file()
+    for key, val in body.items():
+        key = key.upper()
+        # If masked value sent back unchanged, keep original
+        if val and "••••" in str(val):
+            continue
+        env[key] = str(val)
+    _write_env_file(env)
+    # Reload settings object in-place
+    import importlib
+    import core.config as cfg_module
+    cfg_module.settings = cfg_module.Settings()
+    global settings
+    settings = cfg_module.settings
+    return {"ok": True}
+
+
 # ── Entry point ─────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
