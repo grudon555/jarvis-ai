@@ -40,3 +40,5 @@ logs/
 # Temp
 tmp/
 temp/
+.jarvis.pid*
+.jarvis_*.log

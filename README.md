@@ -1,279 +1,263 @@
-# Jarvis-Core
+# ⚡ Jarvis AI
 
-A local-first AI assistant with a multi-agent architecture, automatic skill learning, voice I/O, and a built-in MCP server.
+**Dein eigener KI-Assistent — kostenlos, lokal, auf deinem Computer.**
 
-```
-python main.py          # Terminal dashboard (Rich TUI)
-python jarvis_mcp_server.py   # MCP server for Claude Desktop / VS Code
-```
-
----
-
-## Architecture
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│  Terminal UI (Rich)  ·  MCP Server  ·  Claude Desktop            │
-└──────────────────────────┬───────────────────────────────────────┘
-                           │
-               ┌───────────▼───────────┐
-               │     ManagerAgent      │  SmartRouter: local vs cloud
-               │   (Supervisor)        │  Skill registry check first
-               └──┬────────┬────────┬──┘
-                  │        │        │
-           ┌──────▼─┐  ┌───▼──┐  ┌──▼──────┐
-           │Research│  │Coder │  │Analyst  │  ← saves skills after complex tasks
-           │Agent   │  │Agent │  │Agent   │
-           └──────┬─┘  └───┬──┘  └──┬──────┘
-                  │        │        │
-        ┌─────────▼────────▼────────▼──────┐
-        │   ChromaDB  ·  SkillRegistry      │
-        │   PluginLoader  ·  MCPClient      │
-        └───────────────────────────────────┘
-```
-
-**Routing logic** (in order of priority):
-
-1. **Skill hit** (≥ 72% similarity in `/skills`) → LocalLLM, zero cloud cost
-2. **SmartRouter LOCAL** (short/simple query) → Ollama, zero cloud cost  
-3. **SmartRouter CLOUD** → Manager classifies → sub-agents → Claude synthesis  
-4. **Analyst** evaluates the response → saves reusable Python function to `/skills`
+Jarvis ist wie ChatGPT, aber:
+- 🏠 **Läuft auf deinem Mac** — deine Daten bleiben bei dir
+- 💬 **Erreichbar über WhatsApp & Telegram** — einfach anschreiben
+- 🧠 **Wird mit der Zeit klüger** — lernt und speichert Lösungen automatisch
+- 💰 **Günstig** — nutzt lokale KI (Ollama) wann immer möglich
 
 ---
 
-## Setup
+## 🚀 Installation (5 Minuten)
+
+### Voraussetzungen
+
+Du brauchst nur:
+- Einen **Mac** (mit Apple Silicon oder Intel)
+- **Python 3.9+** — prüfen mit: `python3 --version`
+- Einen **Anthropic API Key** — kostenlos holen auf [console.anthropic.com](https://console.anthropic.com)
+
+### Schritt 1 — Projekt herunterladen
 
 ```bash
-git clone https://github.com/yourname/jarvis-core
-cd jarvis-core
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-
-cp .env.example .env
-# Fill in: ANTHROPIC_API_KEY, ELEVENLABS_API_KEY, ELEVENLABS_VOICE_ID
-
-brew services start ollama
-ollama pull llama3.2   # or any model you prefer
-
-python main.py
+git clone https://github.com/grudon555/jarvis-ai.git
+cd jarvis-ai
 ```
 
-### Requirements
+### Schritt 2 — Automatisch installieren
 
-| Dependency | Purpose |
-|---|---|
-| `anthropic` | Claude API (cloud LLM) |
-| `ollama` | Local LLM via Ollama |
-| `langchain` / `langgraph` | Agent orchestration |
-| `chromadb` | Embedding-based skill + document search |
-| `faster-whisper` | Local speech-to-text |
-| `elevenlabs` | Text-to-speech (streaming) |
-| `sounddevice` | Microphone input + audio playback |
-| `rich` | Terminal UI |
-| `pydantic-settings` | Config via `.env` |
+```bash
+bash setup.sh
+```
 
----
+Das Script installiert alles automatisch:
+- Ollama (lokale KI)
+- Alle Python-Pakete
+- Lädt das KI-Modell herunter (~2 GB)
+- Erstellt die Konfigurationsdatei
 
-## Terminal UI Commands
+### Schritt 3 — Starten
 
-| Command | Action |
-|---|---|
-| *(any text)* | Send message to Jarvis |
-| `/voice` | Start voice recording (press Enter to stop) |
-| `/skills` | List all learned skills |
-| `/exit` | Quit |
+```bash
+./jarvis.sh start
+```
+
+Dann öffne deinen Browser und geh auf **http://localhost:8000** ✅
 
 ---
 
-## Plugin Development
+## 🎮 Bedienung
 
-Add your own tools to Jarvis in three steps.
+### Jarvis steuern
 
-### 1. Create a plugin file
+| Befehl | Was passiert |
+|--------|-------------|
+| `./jarvis.sh start` | Alles starten |
+| `./jarvis.sh stop` | Alles stoppen |
+| `./jarvis.sh restart` | Neu starten |
+| `./jarvis.sh status` | Läuft alles? |
+| `./jarvis.sh logs` | Live-Logs ansehen |
 
-Create `plugins/my_tool.py`:
+### Im Browser (http://localhost:8000)
+
+- Einfach ins Textfeld schreiben und Enter drücken
+- **⚙ Einstellungen** — API Keys, Modell, WhatsApp, Telegram alles konfigurierbar
+- Gesprächsverlauf wird automatisch gespeichert
+
+---
+
+## 💬 WhatsApp einrichten
+
+So kannst du Jarvis über WhatsApp anschreiben:
+
+**1. Twilio-Konto erstellen (kostenlos)**
+- Geh auf [twilio.com](https://www.twilio.com) → kostenlos registrieren
+- Nach dem Login: **Account SID** und **Auth Token** kopieren
+
+**2. WhatsApp Sandbox aktivieren**
+- Im Twilio-Dashboard: **Messaging → Try it out → Send a WhatsApp message**
+- Schicke die angezeigte Nachricht (z.B. `join apple-mango`) von deinem WhatsApp an `+1 415 523 8886`
+
+**3. Webhook eintragen**
+- Im Twilio-Dashboard: **Sandbox Settings**
+- Feld **"WHEN A MESSAGE COMES IN"** → URL aus `./jarvis.sh start` eintragen
+
+**4. Im Einstellungs-Dashboard konfigurieren**
+- Browser öffnen: http://localhost:8000 → ⚙ Einstellungen → WhatsApp
+- Account SID, Auth Token und deine Handynummer eintragen → Speichern
+
+---
+
+## ✈ Telegram einrichten
+
+Noch einfacher als WhatsApp — und komplett kostenlos:
+
+**1. Bot erstellen**
+- Öffne Telegram, suche nach `@BotFather`
+- Schreibe `/newbot`
+- Gib einen Namen ein (z.B. `Mein Jarvis`)
+- Gib einen Username ein (z.B. `mein_jarvis_bot`)
+- Du bekommst einen **Token** — sieht so aus: `7123456789:AAF...`
+
+**2. Token eintragen**
+- Browser: http://localhost:8000 → ⚙ Einstellungen → Telegram
+- Token einfügen → Speichern → Jarvis neu starten (`./jarvis.sh restart`)
+
+**3. Fertig!**
+- Öffne deinen neuen Bot in Telegram
+- Schreib `/start` — Jarvis antwortet sofort
+
+---
+
+## ⚙ Einstellungen
+
+Alle Einstellungen kannst du direkt im Browser ändern — **kein Bearbeiten von Dateien nötig**.
+
+http://localhost:8000 → Klick auf **⚙ Einstellungen**
+
+| Einstellung | Beschreibung |
+|-------------|-------------|
+| **Anthropic API Key** | Für Claude (Cloud-KI) |
+| **Cloud Modell** | claude-sonnet (Standard), opus (stärker), haiku (schneller) |
+| **Telegram Bot Token** | Für den Telegram-Bot |
+| **WhatsApp / Twilio** | Account SID, Auth Token, Nummern |
+| **Whisper Sprache** | Sprache für Spracherkennung (de, en, fr…) |
+
+---
+
+## 🧠 Wie Jarvis funktioniert
+
+```
+Deine Frage
+    │
+    ▼
+┌─────────────────────────────────────┐
+│  Skill-Datenbank                    │  ← Schon mal beantwortet?
+│  (ähnliche Fragen aus der          │     Dann: gratis, sofort!
+│   Vergangenheit)                    │
+└──────────────┬──────────────────────┘
+               │ Nein
+               ▼
+┌─────────────────────────────────────┐
+│  SmartRouter                        │  ← Einfache Frage?
+│  Einfach → Ollama (lokal, gratis)  │     Ollama antwortet
+│  Komplex → Claude (Cloud)          │
+└──────────────┬──────────────────────┘
+               │ Komplex
+               ▼
+┌──────────────┬──────────────┬────────┐
+│  Research    │  Coder       │ Direct │  ← Spezialisierte Agenten
+│  Agent       │  Agent       │        │
+└──────────────┴──────────────┴────────┘
+               │
+               ▼
+┌─────────────────────────────────────┐
+│  Analyst Agent                      │  ← Lösung gut genug zum
+│  "Soll ich das als Skill speichern?"│    Speichern? → Nächste
+└─────────────────────────────────────┘    Mal gratis!
+```
+
+**Ergebnis:** Je mehr du Jarvis nutzt, desto günstiger und schneller wird er.
+
+---
+
+## 🔌 Eigene Tools hinzufügen (Plugins)
+
+Erstelle eine Datei `plugins/mein_tool.py`:
 
 ```python
 from plugins import jarvis_tool
 
 @jarvis_tool(
-    name="fetch_stock_price",
-    description="Get the current stock price for a ticker symbol",
+    name="wetter",
+    description="Aktuelles Wetter für eine Stadt abrufen",
     params={
-        "ticker": {
+        "stadt": {
             "type": "string",
-            "description": "Stock ticker symbol, e.g. AAPL",
+            "description": "Name der Stadt",
             "required": True,
-        },
-        "currency": {
-            "type": "string",
-            "description": "Currency code (default: USD)",
-        },
+        }
     },
 )
-def fetch_stock_price(ticker: str, currency: str = "USD") -> str:
-    # Your implementation here
-    import urllib.request, json
-    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
-    with urllib.request.urlopen(url) as resp:
-        data = json.loads(resp.read())
-    price = data["chart"]["result"][0]["meta"]["regularMarketPrice"]
-    return f"{ticker}: {price} {currency}"
+def wetter(stadt: str) -> str:
+    return f"Das Wetter in {stadt} ist sonnig, 22°C."
 ```
 
-### 2. Rules for plugins
+Jarvis lädt das Tool automatisch beim Start — kein weiterer Aufwand.
 
-| Rule | Why |
-|---|---|
-| One `@jarvis_tool` per logical action | Tools are matched individually by the MCP client |
-| Return a plain `str` | MCP protocol passes text content |
-| No side-effects on import | `PluginLoader` imports the file on startup |
-| Parameters use JSON Schema types: `string`, `integer`, `boolean`, `number` | Matches MCP `inputSchema` |
-| No required external state | Tools must be self-contained |
+---
 
-### 3. Restart Jarvis
+## 🐳 Mit Docker starten (Alternative)
+
+Falls du Docker hast:
 
 ```bash
-python main.py
-# or for MCP server:
-python jarvis_mcp_server.py
+cp .env.example .env
+# API Key in .env eintragen
+docker compose up
 ```
 
-The `PluginLoader` auto-discovers every `*.py` file in `/plugins/` that doesn't start with `_`.
+Docker startet automatisch Ollama und Jarvis zusammen.
 
 ---
 
-## Skill System (Automatic Learning)
+## ❓ Häufige Probleme
 
-After every complex cloud response, the **AnalystAgent** evaluates the solution:
-
-- **Saves** → if the solution is generic, reusable, and non-trivial  
-- **Skips** → one-off tasks, pure conversation, trivially simple code  
-
-Saved skills appear in `skills/<name>.py` and are indexed by embedding similarity. On future similar requests, Jarvis uses the local skill instead of calling Claude — **zero cloud tokens**.
-
+**„Ollama antwortet nicht"**
 ```bash
-# View learned skills inside Jarvis
-/skills
-
-# Or inspect directly
-ls skills/
-cat skills/parse_csv_rows.py
+ollama serve
+# oder
+brew services start ollama
 ```
 
-**Difference between plugins and skills:**
+**„Server startet nicht"**
+```bash
+./jarvis.sh logs
+# Zeigt dir was schiefgelaufen ist
+```
 
-| | Plugins | Skills |
-|---|---|---|
-| Written by | Developer | Jarvis (automatically) |
-| Location | `/plugins/*.py` | `/skills/*.py` |
-| Triggered | Always available | Similarity search |
-| Format | `@jarvis_tool` decorated function | Plain Python function with header comments |
+**„Kein Modell gefunden"**
+```bash
+ollama pull llama3.2
+```
+
+**Tunnel-URL ändert sich nach jedem Neustart**
+→ Normal — einfach neue URL in Twilio Sandbox Settings eintragen.
+→ Für fixe URL: ngrok-Account erstellen (kostenlos auf ngrok.com).
 
 ---
 
-## MCP Server
-
-Jarvis exposes all its tools as an MCP server, compatible with **Claude Desktop**, **VS Code Copilot**, and any MCP-compliant client.
-
-### Connect to Claude Desktop
-
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "jarvis": {
-      "command": "/path/to/Jarvis/.venv/bin/python",
-      "args": ["/path/to/Jarvis/jarvis_mcp_server.py"],
-      "env": {
-        "ANTHROPIC_API_KEY": "sk-ant-...",
-        "OLLAMA_HOST": "http://localhost:11434"
-      }
-    }
-  }
-}
-```
-
-Restart Claude Desktop. You will see these tools available:
-
-| Tool | Description |
-|---|---|
-| `ask_jarvis` | Full Jarvis pipeline — multi-agent, skill reuse, voice-capable |
-| `list_directory` | List files in a directory |
-| `read_file_excerpt` | Read first N lines of a file |
-| `get_system_info` | macOS system information |
-| `get_env_variable` | Read an environment variable |
-| *(your plugins)* | Auto-discovered from `/plugins/` |
-
-### Load external MCP servers
-
-Create `mcp_servers.json` (see `mcp_servers.json.example`):
-
-```json
-{
-  "filesystem": {
-    "command": "npx",
-    "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/you/Documents"],
-    "env": {}
-  },
-  "github": {
-    "command": "npx",
-    "args": ["-y", "@modelcontextprotocol/server-github"],
-    "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_..." }
-  }
-}
-```
-
-Jarvis will connect to each server on startup, import their tools, and expose them via its own MCP interface. Tools from external servers are prefixed with `[server_name]` in their descriptions.
-
----
-
-## Project Structure
+## 📁 Projektstruktur
 
 ```
-jarvis-core/
-├── main.py                    # Terminal UI entry point
-├── jarvis_mcp_server.py       # MCP server entry point
-├── requirements.txt
-├── .env.example
-├── mcp_servers.json.example   # Template for external MCP servers
+jarvis-ai/
+├── setup.sh          ← Automatische Installation
+├── jarvis.sh         ← Start / Stop / Status
+├── server.py         ← Web Server + WhatsApp Webhook
+├── main.py           ← Terminal-Version
 │
-├── core/
-│   ├── config.py              # pydantic-settings (.env)
-│   ├── llm.py                 # LocalLLM (Ollama) + CloudLLM (Anthropic)
-│   ├── router.py              # SmartRouter (score-based local/cloud classification)
-│   ├── bus.py                 # AgentBus (message passing between agents)
-│   ├── plugin_loader.py       # Auto-discovers /plugins/*.py
-│   ├── mcp_server.py          # JSON-RPC 2.0 MCP server (no SDK required)
-│   └── mcp_client.py          # Connect to external MCP servers
-│
-├── agents/
-│   ├── manager.py             # ManagerAgent (supervisor, skill lookup, analyst trigger)
-│   ├── coder.py               # CoderAgent (files, terminal, code generation)
-│   ├── research.py            # ResearchAgent (ChromaDB document search)
-│   └── analyst.py             # AnalystAgent (evaluates responses, saves skills)
-│
-├── skills/                    # Auto-generated learned skills
-│   └── _registry.json         # Skill index
-│
-├── plugins/                   # Developer-added tools
-│   ├── __init__.py            # @jarvis_tool decorator
-│   ├── system_info.py         # Built-in: system info, env vars
-│   └── file_utils.py          # Built-in: list_directory, read_file_excerpt
-│
-└── interface/
-    ├── tui.py                 # Rich dashboard (thread-safe state + layout)
-    ├── voice_in.py            # faster-whisper local speech recognition
-    └── voice_out.py           # ElevenLabs streaming TTS
+├── agents/           ← KI-Agenten (Manager, Coder, Research, Analyst)
+├── core/             ← Router, LLM, Bus, MCP
+├── interface/        ← Web UI, WhatsApp, Telegram, Voice
+├── plugins/          ← Eigene Tools hinzufügen
+├── skills/           ← Automatisch gelernte Lösungen
+└── static/           ← Web-Interface (index.html)
 ```
 
 ---
 
-## Contributing
+## 🤝 Mitmachen
 
-1. **New plugin** → add `plugins/your_tool.py` with `@jarvis_tool` decorator  
-2. **New agent** → extend `agents/base.py`, register on the `AgentBus`  
-3. **New skill** → just use Jarvis; the Analyst handles it automatically  
+1. Fork das Projekt auf GitHub
+2. Neues Plugin erstellen in `plugins/dein_tool.py`
+3. Pull Request erstellen
 
-Open a pull request with a description of what problem the plugin solves and an example invocation.
+Fragen oder Probleme? → [GitHub Issues](https://github.com/grudon555/jarvis-ai/issues)
+
+---
+
+<div align="center">
+  Made with ❤️ · Self-hosted · Open Source
+</div>
