@@ -1,0 +1,42 @@
+# Environment
+.env
+*.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Jarvis data (auto-generated, user-specific)
+.jarvis_db/
+skills/*.py
+skills/_registry.json
+!skills/__init__.py
+!skills/registry.py
+
+# MCP config (contains secrets)
+mcp_servers.json
+
+# Logs
+*.log
+logs/
+
+# macOS
+.DS_Store
+.AppleDouble
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temp
+tmp/
+temp/

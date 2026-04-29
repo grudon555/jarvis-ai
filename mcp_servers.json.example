@@ -1,0 +1,19 @@
+{
+  "filesystem": {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/yourname/Documents"],
+    "env": {}
+  },
+  "github": {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-github"],
+    "env": {
+      "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_..."
+    }
+  },
+  "custom_python_server": {
+    "command": "/path/to/.venv/bin/python",
+    "args": ["/path/to/my_mcp_server.py"],
+    "env": {}
+  }
+}

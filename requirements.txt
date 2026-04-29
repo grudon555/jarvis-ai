@@ -1,0 +1,17 @@
+langchain
+langgraph
+ollama
+anthropic
+pydantic-settings
+rich
+faster-whisper
+chromadb
+elevenlabs
+sounddevice
+numpy
+fastapi
+uvicorn[standard]
+python-multipart
+twilio
+requests
+python-telegram-bot[ext]

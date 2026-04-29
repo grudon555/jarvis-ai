@@ -1,0 +1,32 @@
+services:
+  jarvis:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file: .env
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    depends_on:
+      ollama:
+        condition: service_healthy
+    volumes:
+      - ./skills:/app/skills
+      - ./.jarvis_db:/app/.jarvis_db
+      - ./plugins:/app/plugins
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  ollama_data:

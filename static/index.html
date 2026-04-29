@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jarvis AI</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f0f;
+    --bg2: #171717;
+    --bg3: #1e1e1e;
+    --bg4: #252525;
+    --border: #2a2a2a;
+    --text: #e8e8e8;
+    --text2: #9a9a9a;
+    --text3: #5a5a5a;
+    --accent: #7c6aff;
+    --accent2: #5b4de0;
+    --green: #22c55e;
+    --red: #ef4444;
+    --yellow: #f59e0b;
+    --user-bg: #1e1e2e;
+    --radius: 12px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  }
+
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; line-height: 1.6; }
+
+  /* ── Layout ── */
+  #app { display: flex; height: 100vh; overflow: hidden; }
+
+  /* ── Sidebar ── */
+  #sidebar {
+    width: 260px; min-width: 260px; background: var(--bg2);
+    border-right: 1px solid var(--border); display: flex;
+    flex-direction: column; padding: 0; overflow: hidden;
+  }
+
+  .sidebar-header {
+    padding: 20px 16px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 20px; font-weight: 700; color: var(--text);
+    margin-bottom: 14px;
+  }
+  .logo-icon {
+    width: 34px; height: 34px; background: var(--accent);
+    border-radius: 8px; display: flex; align-items: center;
+    justify-content: center; font-size: 18px; flex-shrink: 0;
+  }
+
+  #btn-new {
+    width: 100%; padding: 9px 14px; background: var(--accent);
+    border: none; border-radius: 8px; color: #fff;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: background 0.15s;
+  }
+  #btn-new:hover { background: var(--accent2); }
+
+  .sidebar-section { padding: 14px 16px 10px; }
+  .sidebar-label { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+
+  /* Status pills */
+  .status-grid { display: flex; flex-direction: column; gap: 6px; }
+  .status-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--bg3); border-radius: 8px; padding: 8px 12px;
+    font-size: 13px;
+  }
+  .status-row .label { color: var(--text2); }
+  .status-row .val { font-weight: 600; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot.red { background: var(--red); }
+  .dot.yellow { background: var(--yellow); }
+
+  /* History list */
+  #history-list { flex: 1; overflow-y: auto; padding: 8px; }
+  .hist-item {
+    padding: 9px 12px; border-radius: 8px; font-size: 13px;
+    color: var(--text2); cursor: pointer; transition: background 0.1s;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .hist-item:hover { background: var(--bg3); color: var(--text); }
+  .hist-item.active { background: var(--bg4); color: var(--text); }
+
+  .sidebar-footer {
+    padding: 12px 16px; border-top: 1px solid var(--border);
+    font-size: 12px; color: var(--text3); text-align: center;
+  }
+  .sidebar-footer a { color: var(--accent); text-decoration: none; }
+
+  /* ── Main ── */
+  #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+
+  /* Header */
+  #header {
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--bg); flex-shrink: 0;
+  }
+  #header-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  #header-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  #header-actions { display: flex; gap: 8px; }
+  .btn-sm {
+    padding: 6px 12px; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 7px; color: var(--text2); font-size: 13px; cursor: pointer;
+    transition: all 0.1s;
+  }
+  .btn-sm:hover { background: var(--bg4); color: var(--text); }
+
+  /* Messages */
+  #messages {
+    flex: 1; overflow-y: auto; padding: 24px 20px;
+    display: flex; flex-direction: column; gap: 20px;
+  }
+  #messages::-webkit-scrollbar { width: 4px; }
+  #messages::-webkit-scrollbar-track { background: transparent; }
+  #messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Welcome screen */
+  #welcome {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 16px;
+    text-align: center; padding: 40px;
+  }
+  .welcome-icon { font-size: 48px; margin-bottom: 8px; }
+  .welcome-title { font-size: 28px; font-weight: 700; color: var(--text); }
+  .welcome-sub { font-size: 16px; color: var(--text2); max-width: 420px; }
+  .welcome-features {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    margin-top: 16px; max-width: 480px; width: 100%;
+  }
+  .feature-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px; text-align: left;
+  }
+  .feature-card .icon { font-size: 20px; margin-bottom: 6px; }
+  .feature-card .title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .feature-card .desc { font-size: 12px; color: var(--text3); margin-top: 2px; }
+
+  /* Message bubbles */
+  .msg { display: flex; gap: 12px; max-width: 800px; width: 100%; align-self: flex-start; }
+  .msg.user { flex-direction: row-reverse; align-self: flex-end; }
+
+  .avatar {
+    width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 700; margin-top: 2px;
+  }
+  .avatar.jarvis { background: var(--accent); color: #fff; }
+  .avatar.user { background: var(--bg4); }
+
+  .bubble {
+    padding: 12px 16px; border-radius: var(--radius);
+    font-size: 15px; line-height: 1.65; max-width: calc(100% - 44px);
+    word-wrap: break-word;
+  }
+  .msg.jarvis .bubble {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-top-left-radius: 4px;
+  }
+  .msg.user .bubble {
+    background: var(--user-bg); border: 1px solid #2a2a4a;
+    border-top-right-radius: 4px; color: var(--text);
+  }
+
+  /* Meta tags below bubble */
+  .msg-meta { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+  .tag {
+    font-size: 11px; padding: 2px 8px; border-radius: 20px;
+    font-weight: 500; display: flex; align-items: center; gap: 4px;
+  }
+  .tag.skill { background: #1a2e1a; color: var(--green); border: 1px solid #2a4a2a; }
+  .tag.agent { background: #1a1a2e; color: #a78bfa; border: 1px solid #2a2a4a; }
+  .tag.learned { background: #2e2a1a; color: var(--yellow); border: 1px solid #4a3a1a; }
+
+  /* Streaming cursor */
+  .cursor { display: inline-block; width: 2px; height: 1em; background: var(--accent); margin-left: 1px; animation: blink 0.9s step-end infinite; vertical-align: text-bottom; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* Markdown in bubbles */
+  .bubble p { margin-bottom: 10px; }
+  .bubble p:last-child { margin-bottom: 0; }
+  .bubble strong { font-weight: 600; color: var(--text); }
+  .bubble em { font-style: italic; color: var(--text2); }
+  .bubble code {
+    font-family: var(--font-mono); font-size: 13px;
+    background: var(--bg3); padding: 2px 6px; border-radius: 4px;
+    color: #c4b5fd;
+  }
+  .bubble pre {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px; margin: 10px 0;
+    overflow-x: auto;
+  }
+  .bubble pre code { background: none; padding: 0; color: var(--text); }
+  .bubble ul, .bubble ol { padding-left: 20px; margin: 8px 0; }
+  .bubble li { margin-bottom: 4px; }
+  .bubble h1, .bubble h2, .bubble h3 { font-weight: 700; margin: 14px 0 6px; color: var(--text); }
+  .bubble h1 { font-size: 18px; } .bubble h2 { font-size: 16px; } .bubble h3 { font-size: 15px; }
+  .bubble blockquote { border-left: 3px solid var(--accent); padding-left: 12px; color: var(--text2); margin: 8px 0; }
+  .bubble hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+  .bubble a { color: var(--accent); text-decoration: none; }
+  .bubble a:hover { text-decoration: underline; }
+  .bubble table { border-collapse: collapse; margin: 10px 0; width: 100%; font-size: 14px; }
+  .bubble td, .bubble th { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+  .bubble th { background: var(--bg3); font-weight: 600; }
+
+  /* Thinking indicator */
+  .thinking { display: flex; gap: 6px; align-items: center; padding: 4px 0; }
+  .thinking span { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; animation: bounce 1.2s ease-in-out infinite; }
+  .thinking span:nth-child(2) { animation-delay: 0.2s; }
+  .thinking span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-8px); } }
+
+  /* ── Input area ── */
+  #input-area {
+    padding: 16px 20px 20px; border-top: 1px solid var(--border);
+    background: var(--bg); flex-shrink: 0;
+  }
+  #input-wrapper {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); display: flex; align-items: flex-end;
+    gap: 8px; padding: 10px 10px 10px 16px;
+    transition: border-color 0.15s;
+    max-width: 800px; margin: 0 auto;
+  }
+  #input-wrapper:focus-within { border-color: var(--accent); }
+  #input {
+    flex: 1; background: none; border: none; outline: none;
+    color: var(--text); font-size: 15px; font-family: var(--font);
+    resize: none; max-height: 200px; line-height: 1.5;
+    scrollbar-width: none;
+  }
+  #input::placeholder { color: var(--text3); }
+  #input::-webkit-scrollbar { display: none; }
+  #btn-send {
+    width: 36px; height: 36px; background: var(--accent);
+    border: none; border-radius: 8px; color: #fff;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: all 0.15s; font-size: 16px;
+  }
+  #btn-send:hover { background: var(--accent2); }
+  #btn-send:disabled { background: var(--bg4); color: var(--text3); cursor: not-allowed; }
+  .input-hint { text-align: center; font-size: 12px; color: var(--text3); margin-top: 8px; }
+
+  /* ── Mobile ── */
+  #menu-btn { display: none; background: none; border: none; color: var(--text); font-size: 22px; cursor: pointer; padding: 4px; }
+  @media (max-width: 700px) {
+    #sidebar { position: fixed; left: -260px; top: 0; height: 100%; z-index: 100; transition: left 0.25s; }
+    #sidebar.open { left: 0; }
+    #menu-btn { display: block; }
+    #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 99; }
+    #overlay.show { display: block; }
+    #messages { padding: 16px 12px; }
+    #input-area { padding: 12px; }
+    .welcome-features { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div id="overlay"></div>
+<div id="app">
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <div class="logo-icon">⚡</div>
+        Jarvis
+      </div>
+      <button id="btn-new">+ Neues Gespräch</button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">System</div>
+      <div class="status-grid">
+        <div class="status-row">
+          <span class="label">Ollama</span>
+          <span class="val" id="st-ollama"><span class="dot yellow"></span>—</span>
+        </div>
+        <div class="status-row">
+          <span class="label">Cloud</span>
+          <span class="val" id="st-cloud"><span class="dot yellow"></span>—</span>
+        </div>
+        <div class="status-row">
+          <span class="label">Skills</span>
+          <span class="val" id="st-skills">—</span>
+        </div>
+        <div class="status-row">
+          <span class="label">Tools</span>
+          <span class="val" id="st-tools">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section" style="flex:1; overflow:hidden; display:flex; flex-direction:column;">
+      <div class="sidebar-label">Verlauf</div>
+      <div id="history-list"></div>
+    </div>
+
+    <div class="sidebar-footer">
+      <a href="https://github.com/anthropics/jarvis" target="_blank">GitHub</a> · Open Source
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div id="main">
+    <div id="header">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <button id="menu-btn" onclick="toggleSidebar()">☰</button>
+        <div>
+          <div id="header-title">Neues Gespräch</div>
+          <div id="header-sub">Jarvis Multi-Agent AI</div>
+        </div>
+      </div>
+      <div id="header-actions">
+        <button class="btn-sm" onclick="resetChat()">↺ Reset</button>
+      </div>
+    </div>
+
+    <div id="messages">
+      <div id="welcome">
+        <div class="welcome-icon">⚡</div>
+        <div class="welcome-title">Jarvis AI</div>
+        <div class="welcome-sub">Dein lokaler KI-Assistent mit Multi-Agenten-Architektur. Stellt Fragen, schreibt Code, recherchiert — und wird mit jeder Antwort klüger.</div>
+        <div class="welcome-features">
+          <div class="feature-card">
+            <div class="icon">🧠</div>
+            <div class="title">Skill-Learning</div>
+            <div class="desc">Lernt automatisch und wiederverwendet Lösungen — null Cloud-Kosten beim nächsten Mal</div>
+          </div>
+          <div class="feature-card">
+            <div class="icon">🤖</div>
+            <div class="title">Multi-Agent</div>
+            <div class="desc">Manager koordiniert Research, Coder und Analyst-Agenten je nach Aufgabe</div>
+          </div>
+          <div class="feature-card">
+            <div class="icon">🏠</div>
+            <div class="title">Local-First</div>
+            <div class="desc">Ollama läuft lokal — deine Daten bleiben bei dir, auch offline nutzbar</div>
+          </div>
+          <div class="feature-card">
+            <div class="icon">🔌</div>
+            <div class="title">Plugins</div>
+            <div class="desc">Erweiterbar mit eigenen Tools via @jarvis_tool Decorator</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="input-area">
+      <div id="input-wrapper">
+        <textarea id="input" rows="1" placeholder="Schreib etwas oder stell eine Frage…"></textarea>
+        <button id="btn-send" onclick="sendMessage()">▶</button>
+      </div>
+      <div class="input-hint">Enter zum Senden · Shift+Enter für neue Zeile</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SESSION_KEY = 'jarvis_session_' + location.pathname;
+let sessionId = localStorage.getItem(SESSION_KEY) || crypto.randomUUID();
+localStorage.setItem(SESSION_KEY, sessionId);
+
+let chatHistory = JSON.parse(localStorage.getItem('jarvis_history_' + sessionId) || '[]');
+let isStreaming = false;
+let currentTitle = 'Neues Gespräch';
+
+// ── Init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  loadStatus();
+  renderHistory();
+  if (chatHistory.length > 0) {
+    document.getElementById('welcome').remove();
+    chatHistory.forEach(m => appendMessage(m.role, m.content, m.meta, false));
+    scrollToBottom();
+  }
+  autoResize(document.getElementById('input'));
+  setInterval(loadStatus, 15000);
+});
+
+document.getElementById('input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+document.getElementById('input').addEventListener('input', function() { autoResize(this); });
+document.getElementById('btn-new').addEventListener('click', newChat);
+document.getElementById('overlay').addEventListener('click', closeSidebar);
+
+// ── Status ────────────────────────────────────────────────────────────────
+async function loadStatus() {
+  try {
+    const r = await fetch('/api/status');
+    const d = await r.json();
+    const ol = document.getElementById('st-ollama');
+    const cl = document.getElementById('st-cloud');
+    ol.innerHTML = d.ollama_ok
+      ? '<span class="dot green"></span>' + (d.ollama_model || 'OK')
+      : '<span class="dot red"></span>offline';
+    cl.innerHTML = d.cloud_ok
+      ? '<span class="dot green"></span>' + d.cloud_model
+      : '<span class="dot red"></span>kein Key';
+    document.getElementById('st-skills').textContent = d.skills_count;
+    document.getElementById('st-tools').textContent = d.tools_count;
+  } catch {}
+}
+
+// ── Send ──────────────────────────────────────────────────────────────────
+async function sendMessage() {
+  if (isStreaming) return;
+  const input = document.getElementById('input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  // Remove welcome screen
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.remove();
+
+  input.value = '';
+  autoResize(input);
+
+  appendMessage('user', text, null, true);
+  chatHistory.push({ role: 'user', content: text });
+
+  if (currentTitle === 'Neues Gespräch') {
+    currentTitle = text.slice(0, 40) + (text.length > 40 ? '…' : '');
+    document.getElementById('header-title').textContent = currentTitle;
+    saveHistoryIndex();
+  }
+
+  isStreaming = true;
+  document.getElementById('btn-send').disabled = true;
+
+  const thinkingEl = appendThinking();
+  let fullContent = '';
+  let metaData = null;
+
+  try {
+    const resp = await fetch('/chat/stream?' + new URLSearchParams({ message: text, session_id: sessionId }));
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    let bubbleEl = null;
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+
+      const lines = buf.split('\n');
+      buf = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const data = JSON.parse(line.slice(6));
+          if (data.token) {
+            if (!bubbleEl) {
+              thinkingEl.remove();
+              bubbleEl = appendMessage('jarvis', '', null, false);
+            }
+            fullContent += data.token;
+            const bub = bubbleEl.querySelector('.bubble');
+            bub.innerHTML = renderMarkdown(fullContent) + '<span class="cursor"></span>';
+            scrollToBottom();
+          }
+          if (data.done) {
+            metaData = data.meta || {};
+            if (bubbleEl) {
+              const bub = bubbleEl.querySelector('.bubble');
+              bub.innerHTML = renderMarkdown(fullContent);
+              addMeta(bubbleEl, metaData);
+            }
+          }
+          if (data.error) {
+            thinkingEl.remove();
+            appendMessage('jarvis', '❌ ' + data.error, null, false);
+          }
+        } catch {}
+      }
+    }
+  } catch (e) {
+    thinkingEl?.remove();
+    appendMessage('jarvis', '❌ Verbindungsfehler: ' + e.message, null, false);
+  }
+
+  chatHistory.push({ role: 'jarvis', content: fullContent, meta: metaData });
+  localStorage.setItem('jarvis_history_' + sessionId, JSON.stringify(chatHistory));
+
+  isStreaming = false;
+  document.getElementById('btn-send').disabled = false;
+  input.focus();
+}
+
+// ── DOM helpers ───────────────────────────────────────────────────────────
+function appendMessage(role, content, meta, save) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+
+  const avatarText = role === 'jarvis' ? '⚡' : '👤';
+  div.innerHTML = `
+    <div class="avatar ${role}">${avatarText}</div>
+    <div>
+      <div class="bubble">${content ? renderMarkdown(content) : ''}</div>
+      <div class="msg-meta"></div>
+    </div>`;
+
+  if (meta) addMeta(div, meta);
+  msgs.appendChild(div);
+  scrollToBottom();
+  return div;
+}
+
+function appendThinking() {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg jarvis';
+  div.innerHTML = `<div class="avatar jarvis">⚡</div><div><div class="bubble"><div class="thinking"><span></span><span></span><span></span></div></div></div>`;
+  msgs.appendChild(div);
+  scrollToBottom();
+  return div;
+}
+
+function addMeta(msgEl, meta) {
+  const metaDiv = msgEl.querySelector('.msg-meta');
+  if (!metaDiv) return;
+  metaDiv.innerHTML = '';
+  if (meta.skill_hits?.length) {
+    metaDiv.innerHTML += `<span class="tag skill">♻️ Skill: ${meta.skill_hits.join(', ')}</span>`;
+  }
+  if (meta.skill_saved) {
+    metaDiv.innerHTML += `<span class="tag learned">💡 Gelernt: ${meta.skill_saved}</span>`;
+  }
+  if (meta.agents_used?.length) {
+    metaDiv.innerHTML += `<span class="tag agent">🤖 ${meta.agents_used.join(' → ')}</span>`;
+  }
+}
+
+function scrollToBottom() {
+  const msgs = document.getElementById('messages');
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// ── Chat management ───────────────────────────────────────────────────────
+function newChat() {
+  sessionId = crypto.randomUUID();
+  localStorage.setItem(SESSION_KEY, sessionId);
+  chatHistory = [];
+  currentTitle = 'Neues Gespräch';
+  document.getElementById('header-title').textContent = currentTitle;
+  document.getElementById('messages').innerHTML = `
+    <div id="welcome">
+      <div class="welcome-icon">⚡</div>
+      <div class="welcome-title">Jarvis AI</div>
+      <div class="welcome-sub">Neues Gespräch gestartet. Was möchtest du wissen?</div>
+    </div>`;
+  fetch('/chat/reset', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ session_id: sessionId }) });
+  saveHistoryIndex();
+  closeSidebar();
+}
+
+async function resetChat() {
+  chatHistory = [];
+  localStorage.removeItem('jarvis_history_' + sessionId);
+  await fetch('/chat/reset', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ session_id: sessionId }) });
+  document.getElementById('messages').innerHTML = '<div id="welcome"><div class="welcome-icon">⚡</div><div class="welcome-title">Jarvis AI</div><div class="welcome-sub">Kontext gelöscht.</div></div>';
+  chatHistory = [];
+  currentTitle = 'Neues Gespräch';
+  document.getElementById('header-title').textContent = currentTitle;
+}
+
+function saveHistoryIndex() {
+  const idx = JSON.parse(localStorage.getItem('jarvis_index') || '[]');
+  const exists = idx.find(i => i.id === sessionId);
+  if (!exists) idx.unshift({ id: sessionId, title: currentTitle, ts: Date.now() });
+  else exists.title = currentTitle;
+  localStorage.setItem('jarvis_index', JSON.stringify(idx.slice(0, 30)));
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  const idx = JSON.parse(localStorage.getItem('jarvis_index') || '[]');
+  list.innerHTML = idx.map(i => `
+    <div class="hist-item ${i.id === sessionId ? 'active' : ''}" onclick="loadSession('${i.id}')">
+      ${escHtml(i.title || 'Gespräch')}
+    </div>`).join('');
+}
+
+function loadSession(id) {
+  sessionId = id;
+  localStorage.setItem(SESSION_KEY, id);
+  chatHistory = JSON.parse(localStorage.getItem('jarvis_history_' + id) || '[]');
+  const msgs = document.getElementById('messages');
+  msgs.innerHTML = '';
+  if (chatHistory.length === 0) {
+    msgs.innerHTML = '<div id="welcome"><div class="welcome-icon">⚡</div><div class="welcome-title">Jarvis AI</div></div>';
+  } else {
+    chatHistory.forEach(m => appendMessage(m.role, m.content, m.meta, false));
+  }
+  const idx = JSON.parse(localStorage.getItem('jarvis_index') || '[]');
+  const item = idx.find(i => i.id === id);
+  currentTitle = item?.title || 'Gespräch';
+  document.getElementById('header-title').textContent = currentTitle;
+  renderHistory();
+  scrollToBottom();
+  closeSidebar();
+}
+
+// ── Mobile sidebar ────────────────────────────────────────────────────────
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+// ── Markdown renderer (minimal, no deps) ─────────────────────────────────
+function renderMarkdown(text) {
+  let h = escHtml(text);
+  // Code blocks
+  h = h.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) =>
+    `<pre><code>${code.trim()}</code></pre>`);
+  // Inline code
+  h = h.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // Bold
+  h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Italic
+  h = h.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+  // Headers
+  h = h.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  h = h.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  h = h.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  // HR
+  h = h.replace(/^---+$/gm, '<hr>');
+  // Blockquote
+  h = h.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+  // Lists
+  h = h.replace(/^[\*\-] (.+)$/gm, '<li>$1</li>');
+  h = h.replace(/(<li>.*<\/li>\n?)+/g, s => '<ul>' + s + '</ul>');
+  h = h.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+  // Links
+  h = h.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+  // Paragraphs
+  h = h.replace(/\n{2,}/g, '</p><p>');
+  h = h.replace(/\n/g, '<br>');
+  h = '<p>' + h + '</p>';
+  h = h.replace(/<p><\/p>/g, '');
+  h = h.replace(/<p>(<[hH][1-6]|<ul|<ol|<pre|<blockquote|<hr)/g, '$1');
+  h = h.replace(/(<\/[hH][1-6]>|<\/ul>|<\/ol>|<\/pre>|<\/blockquote>|<hr>)<\/p>/g, '$1');
+  return h;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 200) + 'px';
+}
+</script>
+</body>
+</html>
