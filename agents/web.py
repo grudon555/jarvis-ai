@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import re
+from typing import Optional
 
 from core.bus import AgentBus, AgentMessage, AgentRole
-from core.llm import CloudLLM
+from core.llm import CloudLLM, LocalLLM
 from .base import BaseAgent
 
 _SUMMARIZE_PROMPT = """\
@@ -20,9 +21,21 @@ User question: {query}
 class WebAgent(BaseAgent):
     role = AgentRole.WEB
 
-    def __init__(self, bus: AgentBus, llm: CloudLLM) -> None:
+    def __init__(self, bus: AgentBus, llm: CloudLLM, local_llm: Optional[LocalLLM] = None) -> None:
         super().__init__(bus)
-        self._llm = llm
+        self._cloud = llm
+        self._local = local_llm
+
+    def _synthesize(self, prompt: str) -> str:
+        """Use local Ollama to synthesize web results; fall back to cloud if unavailable."""
+        if self._local:
+            try:
+                resp = self._local.chat(messages=[{"role": "user", "content": prompt}])
+                return resp.content
+            except Exception:
+                pass
+        resp = self._cloud.chat(messages=[{"role": "user", "content": prompt}])
+        return resp.content
 
     def handle(self, message: AgentMessage) -> AgentMessage:
         from plugins.web import web_search, fetch_url
@@ -43,15 +56,11 @@ class WebAgent(BaseAgent):
         if page_blocks:
             context += "\n\n--- Full page content ---\n\n" + "\n\n---\n\n".join(page_blocks)
 
-        resp = self._llm.chat(
-            messages=[{"role": "user", "content": _SUMMARIZE_PROMPT.format(
-                query=query, context=context,
-            )}]
-        )
+        answer = self._synthesize(_SUMMARIZE_PROMPT.format(query=query, context=context))
 
         return AgentMessage(
             sender=AgentRole.WEB,
             recipient=AgentRole.MANAGER,
-            content=resp.content,
+            content=answer,
             task_id=message.task_id,
         )

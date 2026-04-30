@@ -55,7 +55,7 @@ async def lifespan(app: FastAPI):
 
     ResearchAgent(bus, project_root=".")
     CoderAgent(bus, llm=cloud_llm, cwd=".")
-    WebAgent(bus, llm=cloud_llm)
+    WebAgent(bus, llm=cloud_llm, local_llm=local_llm)
     _manager = ManagerAgent(
         bus, cloud_llm=cloud_llm, local_llm=local_llm,
         registry=registry, analyst=analyst,
