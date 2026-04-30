@@ -6,20 +6,22 @@ from typing import Callable, Optional
 from plugins import all_tools as _all_tools
 from core.bus import AgentBus, AgentMessage, AgentRole
 from core.llm import CloudLLM, LocalLLM
-from core.router import SmartRouter, RouteTarget
 from skills.registry import SkillRegistry, SkillMatch
 from .base import BaseAgent
 
 _CLASSIFY_PROMPT = """\
-Classify the user request into one or more of these categories.
+Classify the user request into one or more categories.
 
-RESEARCH — find, search, or look up content in existing project files
-CODER    — write code, create/edit files, run terminal commands, implement features
-WEB      — search the internet for current events, news, prices, real-time or external information
-DIRECT   — general questions, explanations, analysis, conversation
+WEB      — DEFAULT for almost everything: factual questions, news, sports, prices, weather,
+           explanations, how-to guides, current events, or anything that benefits from
+           fresh information from the internet. When in doubt, use WEB.
+CODER    — write/edit code, create files, run terminal commands, implement features
+RESEARCH — search content in existing local project files
+DIRECT   — ONLY for purely operational commands that need no internet: math calculations,
+           opening apps, saving/reading notes, clipboard, system tasks, creative writing
 
 Reply with ONLY category names, comma-separated. No explanation.
-Examples: "DIRECT" | "CODER" | "WEB" | "RESEARCH,CODER" | "WEB,CODER"
+Examples: "WEB" | "CODER" | "WEB,CODER" | "DIRECT" | "RESEARCH,CODER"
 
 Request: {prompt}\
 """
@@ -58,7 +60,6 @@ class ManagerAgent(BaseAgent):
         super().__init__(bus)
         self._cloud = cloud_llm
         self._local = local_llm
-        self._router = SmartRouter()
         self._registry = registry
         self._analyst = analyst
 
@@ -66,9 +67,9 @@ class ManagerAgent(BaseAgent):
         resp = self._cloud.chat(
             messages=[{"role": "user", "content": _CLASSIFY_PROMPT.format(prompt=prompt)}]
         )
-        valid = {"RESEARCH", "CODER", "DIRECT"}
+        valid = {"RESEARCH", "CODER", "DIRECT", "WEB"}
         categories = [c.strip() for c in resp.content.strip().upper().split(",")]
-        return [c for c in categories if c in valid] or ["DIRECT"]
+        return [c for c in categories if c in valid] or ["WEB"]
 
     def _skill_lookup(self, prompt: str) -> tuple:
         """Returns (matches, system_context_str). Empty list if registry disabled."""
@@ -107,18 +108,7 @@ class ManagerAgent(BaseAgent):
                     on_token(ch)
             return resp.content, [], meta
 
-        # ── 2. SmartRouter: LOCAL fast path ────────────────────────────────────
-        if self._router.classify(prompt) == RouteTarget.LOCAL:
-            resp = self._local.chat(
-                messages=[{"role": "user", "content": prompt}],
-                system=_direct_system(),
-            )
-            if on_token:
-                for ch in resp.content:
-                    on_token(ch)
-            return resp.content, [], meta
-
-        # ── 3. Cloud path: classify → delegate ────────────────────────────────
+        # ── 2. Cloud path: classify → delegate ────────────────────────────────
         categories = self._classify(prompt)
 
         if categories == ["DIRECT"]:
