@@ -14,6 +14,7 @@ class RouteTarget(Enum):
 
 # Each keyword adds +3 to the complexity score → pushes toward CLOUD
 _CLOUD_SIGNALS = {
+    # Engineering / code tasks
     "architektur", "architecture", "implementier", "implement",
     "refactor", "refaktorier", "design pattern", "system design",
     "analysier", "analyze", "analyse", "erkläre im detail", "explain in detail",
@@ -22,6 +23,16 @@ _CLOUD_SIGNALS = {
     "datenbankschema", "skalier", "scale", "performance", "security",
     "sicherheit", "review mein", "review my", "generier", "generate",
     "schreib mir", "write me", "erstell mir", "create for me",
+    # Sports — always need real-time data
+    "nba", "nfl", "nhl", "mlb", "bundesliga", "champions league", "premier league",
+    "soccer", "basketball", "football", "tennis", "formula 1", "f1", "mma", "ufc",
+    "spiel", "game", "match", "score", "spielplan", "schedule", "standings",
+    "tabelle", "ergebnis", "result", "playoff", "championship",
+    # Real-time / current events
+    "heute", "tonight", "jetzt", "live", "gerade",
+    "news", "nachrichten", "breaking",
+    "preis", "kurs", "price", "bitcoin", "crypto", "aktie", "stock",
+    "wetter", "weather", "forecast",
 }
 
 # Each keyword adds -2 → pushes toward LOCAL
